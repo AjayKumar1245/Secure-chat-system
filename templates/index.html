@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quantum Secure Chat</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="vfx-bg"></div>
+  <div class="chat-wrapper">
+    <div class="chat-header">🛡 Quantum Secure Chat</div>
+    
+    <div id="messages" class="chat-box">
+      {% for message in messages %}
+        <div class="msg">{{ message }}</div>
+      {% endfor %}
+    </div>
+    
+    <form id="chat-form" class="chat-form">
+      <input type="text" id="message" placeholder="Enter your encrypted thoughts..." required />
+      <button type="submit">Transmit</button>
+    </form>
+
+    <label class="enc-label" for="encrypted-output">🧬 Last Encrypted Message:</label>
+    <textarea id="encrypted-output" readonly></textarea>
+  </div>
+
+  <script>
+    const socket = io();
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('message');
+    const messages = document.getElementById('messages');
+    const encryptedOutput = document.getElementById('encrypted-output');
+    let tempMessage = '';
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      if (input.value) {
+        tempMessage = input.value;
+        socket.emit('send_message', { message: input.value });
+        input.value = '';
+      }
+    });
+
+    socket.on('receive_message', data => {
+      const msg = document.createElement('div');
+      msg.className = 'msg';
+      msg.textContent = data.message;
+      messages.appendChild(msg);
+      messages.scrollTop = messages.scrollHeight;
+
+      if (data.message === tempMessage) {
+        fetch('/get_encrypted?msg=' + encodeURIComponent(tempMessage))
+          .then(res => res.text())
+          .then(enc => {
+            encryptedOutput.value = enc;
+          });
+      }
+    });
+  </script>
+</body>
+</html>
