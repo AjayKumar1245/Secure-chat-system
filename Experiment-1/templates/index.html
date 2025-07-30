@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Secure Chat</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="chat-container">
+    <h2>🔐 Secure Chat</h2>
+    <div id="messages" class="chat-box">
+      {% for message in messages %}
+        <div class="msg">{{ message }}</div>
+      {% endfor %}
+    </div>
+    <form id="chat-form">
+      <input type="text" id="message" autocomplete="off" placeholder="Type your message..." required>
+      <button type="submit">Send</button>
+    </form>
+
+    <!-- 🔐 Encrypted Message Display -->
+    <label for="encrypted-output" style="display:block; margin-top:10px;">Last Encrypted Message:</label>
+    <textarea id="encrypted-output" readonly style="width: 100%; height: 60px; background: #333; color: #fff; border: none; border-radius: 6px; padding: 8px;"></textarea>
+  </div>
+
+  <script>
+    const socket = io();
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('message');
+    const messages = document.getElementById('messages');
+    const encryptedOutput = document.getElementById('encrypted-output');
+
+    let tempMessage = ''; // store last sent message
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      if (input.value) {
+        tempMessage = input.value;
+        socket.emit('send_message', { message: input.value });
+        input.value = '';
+      }
+    });
+
+    socket.on('receive_message', data => {
+      const msg = document.createElement('div');
+      msg.className = 'msg';
+      msg.textContent = data.message;
+      messages.appendChild(msg);
+      messages.scrollTop = messages.scrollHeight;
+
+      if (data.message === tempMessage) {
+        fetch('/get_encrypted?msg=' + encodeURIComponent(tempMessage))
+          .then(res => res.text())
+          .then(enc => {
+            encryptedOutput.value = enc;
+          });
+      }
+    });
+  </script>
+</body>
+</html>
